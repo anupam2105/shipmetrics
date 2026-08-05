@@ -1,5 +1,9 @@
 # shipmetrics
 
+[![CI](https://github.com/anupam2105/shipmetrics/actions/workflows/ci.yml/badge.svg)](https://github.com/anupam2105/shipmetrics/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/anupam2105/shipmetrics)](https://goreportcard.com/report/github.com/anupam2105/shipmetrics)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 **DORA metrics & SLO platform for CI/CD pipelines.** Turn Jenkins / GitHub Actions / GitLab CI deployment data into SRE-grade reliability dashboards and burn-rate alerts.
 
 > Status: **early development** — pre-alpha, API subject to change.
