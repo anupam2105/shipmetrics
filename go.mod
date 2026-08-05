@@ -1,6 +1,6 @@
 module github.com/anupam2105/shipmetrics
 
-go 1.25.0
+go 1.26.5
 
 require github.com/prometheus/client_golang v1.24.1
 
