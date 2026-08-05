@@ -1,0 +1,42 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - unconvert
+    - unparam
+    - gocritic
+    - revive
+    - gosec
+    - bodyclose
+    - noctx
+    - errorlint
+    - contextcheck
+    - nilerr
+
+  settings:
+    errcheck:
+      check-type-assertions: true
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+    revive:
+      rules:
+        - name: exported
+        - name: unused-parameter
+          disabled: true
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
