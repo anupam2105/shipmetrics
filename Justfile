@@ -1,8 +1,14 @@
+# Local dev DSN — matches docker-compose.yml.
+db_dsn := "postgres://shipmetrics:shipmetrics@localhost:5432/shipmetrics?sslmode=disable"
+
 default:
     @just --list
 
 test:
     go test -race -count=1 ./...
+
+test-integration:
+    TEST_DATABASE_URL="{{db_dsn}}" go test -race -count=1 ./...
 
 lint:
     golangci-lint run
@@ -24,3 +30,17 @@ tidy:
 
 clean:
     rm -rf bin/
+
+# --- Postgres (local dev) ---
+db-up:
+    docker compose up -d postgres
+    @echo "Postgres starting up — DSN: {{db_dsn}}"
+
+db-down:
+    docker compose down
+
+db-logs:
+    docker compose logs -f postgres
+
+db-psql:
+    docker compose exec postgres psql -U shipmetrics -d shipmetrics

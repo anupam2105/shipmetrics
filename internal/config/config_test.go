@@ -10,6 +10,7 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("SHIPMETRICS_HTTP_ADDR", "")
 	t.Setenv("SHIPMETRICS_LOG_LEVEL", "")
 	t.Setenv("SHIPMETRICS_LOG_FORMAT", "")
+	t.Setenv("SHIPMETRICS_DATABASE_URL", "")
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -23,6 +24,23 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.LogFormat != "json" {
 		t.Errorf("LogFormat = %q, want json", cfg.LogFormat)
+	}
+	if cfg.DatabaseURL != "" {
+		t.Errorf("DatabaseURL = %q, want empty", cfg.DatabaseURL)
+	}
+}
+
+func TestLoadPicksUpDatabaseURL(t *testing.T) {
+	// Not a real credential — synthetic DSN used only to assert env plumbing.
+	const fakeDSN = "postgres://user:pass@localhost:5432/shipmetrics" //nolint:gosec // G101 false positive on fake test DSN
+	t.Setenv("SHIPMETRICS_DATABASE_URL", fakeDSN)
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.DatabaseURL != fakeDSN {
+		t.Errorf("DatabaseURL not picked up: got %q", cfg.DatabaseURL)
 	}
 }
 

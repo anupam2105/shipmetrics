@@ -13,6 +13,7 @@ type Config struct {
 	HTTPAddr        string
 	LogLevel        string
 	LogFormat       string
+	DatabaseURL     string // empty until storage layer is wired in
 	ShutdownTimeout time.Duration
 }
 
@@ -22,6 +23,7 @@ func Load() (Config, error) {
 		HTTPAddr:        getEnv("SHIPMETRICS_HTTP_ADDR", ":8080"),
 		LogLevel:        strings.ToLower(getEnv("SHIPMETRICS_LOG_LEVEL", "info")),
 		LogFormat:       strings.ToLower(getEnv("SHIPMETRICS_LOG_FORMAT", "json")),
+		DatabaseURL:     getEnv("SHIPMETRICS_DATABASE_URL", ""),
 		ShutdownTimeout: 15 * time.Second,
 	}
 
