@@ -17,6 +17,9 @@ type Metrics struct {
 
 	HTTPRequestsTotal   *prometheus.CounterVec
 	HTTPRequestDuration *prometheus.HistogramVec
+
+	WebhookEvents *prometheus.CounterVec // one per accepted event, labelled by source + status
+	WebhookErrors *prometheus.CounterVec // one per rejected event, labelled by source + error_type
 }
 
 // NewMetrics constructs the registry with Go runtime + process collectors and
@@ -49,8 +52,31 @@ func NewMetrics() *Metrics {
 			},
 			[]string{"method", "route"},
 		),
+		WebhookEvents: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "shipmetrics",
+				Subsystem: "webhook",
+				Name:      "events_total",
+				Help:      "Accepted deployment events, labelled by source and status.",
+			},
+			[]string{"source", "status"},
+		),
+		WebhookErrors: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "shipmetrics",
+				Subsystem: "webhook",
+				Name:      "errors_total",
+				Help:      "Rejected webhook requests, labelled by source and error type.",
+			},
+			[]string{"source", "error_type"},
+		),
 	}
-	reg.MustRegister(m.HTTPRequestsTotal, m.HTTPRequestDuration)
+	reg.MustRegister(
+		m.HTTPRequestsTotal,
+		m.HTTPRequestDuration,
+		m.WebhookEvents,
+		m.WebhookErrors,
+	)
 	return m
 }
 
