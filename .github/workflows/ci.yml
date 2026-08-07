@@ -68,6 +68,22 @@ jobs:
   build:
     name: Build and smoke test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: shipmetrics
+          POSTGRES_PASSWORD: shipmetrics
+          POSTGRES_DB: shipmetrics
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shipmetrics -d shipmetrics"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      SHIPMETRICS_DATABASE_URL: postgres://shipmetrics:shipmetrics@localhost:5432/shipmetrics?sslmode=disable
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
@@ -87,6 +103,20 @@ jobs:
           curl -sf http://localhost:8080/healthz | grep -q '"status":"ok"'
           curl -sf http://localhost:8080/readyz | grep -q '"status":"ready"'
           curl -sf http://localhost:8080/metrics | grep -q "shipmetrics_http_requests_total"
+
+          # Post a fake Jenkins event through the real HTTP + Postgres path.
+          curl -sf -X POST http://localhost:8080/webhooks/jenkins \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "pipeline_name":"smoke",
+              "pipeline_id":"ci-smoke-1",
+              "service_name":"svc",
+              "environment":"ci",
+              "status":"success",
+              "started_at":"2026-08-05T10:00:00Z",
+              "finished_at":"2026-08-05T10:01:00Z"
+            }' | grep -q "accepted"
+
           kill "$PID"
           wait "$PID" 2>/dev/null || true
 

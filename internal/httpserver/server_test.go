@@ -18,7 +18,7 @@ func newTestServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	metrics := observability.NewMetrics()
-	s := httpserver.New(":0", logger, metrics)
+	s := httpserver.New(":0", logger, metrics, nil)
 	ts := httptest.NewServer(s.Handler())
 	t.Cleanup(ts.Close)
 	return ts

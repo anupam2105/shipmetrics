@@ -25,21 +25,84 @@ Every dev team has a CI/CD pipeline. Almost nobody has good visibility into pipe
 
 `shipmetrics` fills that gap.
 
-## Development
+## Quick start (local)
 
-Prerequisites: Go 1.22+, `just`, `golangci-lint`.
+Prerequisites: Docker (or OrbStack), Go 1.22+, `just`, `golangci-lint`.
 
 ```bash
-just tidy   # download modules
-just check  # lint + tests
-just run    # start server on :8080
+just dev          # boots Postgres via docker-compose, then runs the app
 ```
 
-Endpoints:
+In another terminal:
 
-- `GET /healthz` — liveness
-- `GET /readyz` — readiness
-- `GET /metrics` — Prometheus scrape target
+```bash
+curl -X POST http://localhost:8080/webhooks/jenkins \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "pipeline_name":"checkout-api-deploy",
+    "pipeline_id":"jenkins-42",
+    "service_name":"checkout-api",
+    "environment":"prod",
+    "status":"success",
+    "started_at":"2026-08-05T10:00:00Z",
+    "finished_at":"2026-08-05T10:03:00Z",
+    "commit_sha":"abc123"
+  }'
+```
+
+Verify persistence:
+
+```bash
+just db-psql
+# then in psql:
+SELECT source, service_name, environment, status, finished_at
+FROM deployment_events ORDER BY finished_at DESC LIMIT 5;
+```
+
+## Endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/healthz` | Liveness probe |
+| GET | `/readyz` | Readiness probe |
+| GET | `/metrics` | Prometheus scrape target |
+| POST | `/webhooks/jenkins` | Canonical shipmetrics JSON payload |
+| POST | `/webhooks/github` | GitHub Actions `workflow_run` payload (add `?service=X&environment=Y`) |
+
+### Jenkins payload contract
+
+Add a `sh` step at the end of your pipeline that posts:
+
+```json
+{
+  "pipeline_name": "checkout-api-deploy",
+  "pipeline_id":   "42",
+  "service_name":  "checkout-api",
+  "environment":   "prod",
+  "status":        "success",
+  "started_at":    "2026-08-05T10:00:00Z",
+  "finished_at":   "2026-08-05T10:03:00Z",
+  "commit_sha":    "abc123",
+  "commit_timestamp": "2026-08-05T09:55:00Z",
+  "metadata": {"triggered_by": "webhook"}
+}
+```
+
+`status` must be one of: `in_progress`, `success`, `failure`, `cancelled`.
+`finished_at` is required for terminal statuses.
+
+### GitHub Actions
+
+Point your workflow_run webhook at `POST /webhooks/github?service=<name>&environment=<env>`. If `service` is omitted the repository name is used; if `environment` is omitted, `unknown` is used.
+
+## Development
+
+```bash
+just check           # golangci-lint + go test (unit only)
+just db-up           # start Postgres
+just test-integration # unit + Postgres integration tests
+just build           # produce ./bin/shipmetrics
+```
 
 ## Configuration
 
@@ -50,6 +113,7 @@ Environment variables:
 | `SHIPMETRICS_HTTP_ADDR` | `:8080` | HTTP listen address |
 | `SHIPMETRICS_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 | `SHIPMETRICS_LOG_FORMAT` | `json` | `json` or `text` |
+| `SHIPMETRICS_DATABASE_URL` | *required* | Postgres DSN (e.g. `postgres://user:pass@host:5432/db?sslmode=disable`) |
 
 ## Architecture
 

@@ -16,7 +16,13 @@ lint:
 check: lint test
 
 run:
-    go run ./cmd/shipmetrics
+    SHIPMETRICS_DATABASE_URL="{{db_dsn}}" go run ./cmd/shipmetrics
+
+# One-shot local dev: start Postgres if needed, then run the app.
+dev: db-up
+    @echo "waiting for Postgres to become ready..."
+    @until docker compose exec -T postgres pg_isready -U shipmetrics -d shipmetrics > /dev/null 2>&1; do sleep 1; done
+    SHIPMETRICS_DATABASE_URL="{{db_dsn}}" go run ./cmd/shipmetrics
 
 build:
     CGO_ENABLED=0 go build -o bin/shipmetrics ./cmd/shipmetrics

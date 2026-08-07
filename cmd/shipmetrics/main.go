@@ -14,6 +14,8 @@ import (
 	"github.com/anupam2105/shipmetrics/internal/httpserver"
 	"github.com/anupam2105/shipmetrics/internal/logging"
 	"github.com/anupam2105/shipmetrics/internal/observability"
+	"github.com/anupam2105/shipmetrics/internal/storage/postgres"
+	"github.com/anupam2105/shipmetrics/internal/webhook"
 )
 
 func main() {
@@ -33,14 +35,32 @@ func run() error {
 	slog.SetDefault(logger)
 
 	metrics := observability.NewMetrics()
-	srv := httpserver.New(cfg.HTTPAddr, logger, metrics)
+
+	// Run migrations *before* opening the runtime pool so the app never sees
+	// a half-migrated schema.
+	if err := postgres.Migrate(cfg.DatabaseURL); err != nil {
+		return fmt.Errorf("run migrations: %w", err)
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	pool, err := postgres.Connect(ctx, cfg.DatabaseURL)
+	if err != nil {
+		return fmt.Errorf("connect postgres: %w", err)
+	}
+	defer pool.Close()
+
+	store := postgres.New(pool)
+	webhookHandler := webhook.NewHandler(store, logger, metrics)
+	srv := httpserver.New(cfg.HTTPAddr, logger, metrics, webhookHandler)
+
 	errCh := make(chan error, 1)
 	go func() {
-		logger.Info("starting server", "addr", cfg.HTTPAddr, "version", buildVersion)
+		logger.Info("starting server",
+			"addr", cfg.HTTPAddr,
+			"version", buildVersion,
+		)
 		if err := srv.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
 		}

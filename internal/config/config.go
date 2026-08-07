@@ -2,6 +2,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -37,6 +38,10 @@ func Load() (Config, error) {
 	case "json", "text":
 	default:
 		return Config{}, fmt.Errorf("invalid SHIPMETRICS_LOG_FORMAT: %q (want json|text)", cfg.LogFormat)
+	}
+
+	if cfg.DatabaseURL == "" {
+		return Config{}, errors.New("SHIPMETRICS_DATABASE_URL is required")
 	}
 
 	return cfg, nil
