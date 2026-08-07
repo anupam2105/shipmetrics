@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/anupam2105/shipmetrics/internal/domain"
 	"github.com/anupam2105/shipmetrics/internal/observability"
@@ -58,6 +59,14 @@ func (f *fakeStore) GetEvent(_ context.Context, s domain.Source, pid string) (*d
 
 func (f *fakeStore) ListRecentEvents(_ context.Context, _ storage.EventFilter, _ int) ([]*domain.DeploymentEvent, error) {
 	return nil, nil
+}
+
+func (f *fakeStore) ListDORATargets(_ context.Context, _ time.Time) ([]storage.DORATarget, error) {
+	return nil, nil
+}
+
+func (f *fakeStore) DORAWindow(_ context.Context, t storage.DORATarget, _ time.Time) (storage.DORAWindowStats, error) {
+	return storage.DORAWindowStats{Target: t}, nil
 }
 
 func (f *fakeStore) Ping(_ context.Context) error { return nil }

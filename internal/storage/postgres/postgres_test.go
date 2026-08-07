@@ -178,3 +178,120 @@ func TestListRecentEventsRespectsFilter(t *testing.T) {
 		t.Errorf("filter did not narrow correctly: %+v", events)
 	}
 }
+
+func TestListDORATargetsReturnsDistinctPairs(t *testing.T) {
+	pool := testPool(t)
+	s := postgres.New(pool)
+	ctx := context.Background()
+
+	base := time.Now().UTC().Add(-30 * time.Minute)
+	seeds := []struct {
+		id, service, env string
+	}{
+		{"a1", "checkout-api", "prod"},
+		{"a2", "checkout-api", "prod"}, // duplicate pair — should collapse
+		{"b1", "checkout-api", "stage"},
+		{"c1", "cart", "prod"},
+	}
+	for i, seed := range seeds {
+		e := sampleEvent(seed.id, base.Add(time.Duration(i)*time.Minute), domain.StatusSuccess)
+		e.ServiceName = seed.service
+		e.Environment = seed.env
+		if err := s.UpsertEvent(ctx, e); err != nil {
+			t.Fatalf("upsert %s: %v", seed.id, err)
+		}
+	}
+
+	targets, err := s.ListDORATargets(ctx, base.Add(-time.Minute))
+	if err != nil {
+		t.Fatalf("ListDORATargets: %v", err)
+	}
+	if len(targets) != 3 {
+		t.Fatalf("targets = %d, want 3 (distinct pairs)", len(targets))
+	}
+}
+
+func TestDORAWindowComputesMetrics(t *testing.T) {
+	pool := testPool(t)
+	s := postgres.New(pool)
+	ctx := context.Background()
+
+	target := storage.DORATarget{ServiceName: "svc", Environment: "prod"}
+	base := time.Now().UTC().Add(-2 * time.Hour)
+
+	// Two successful deploys (10m and 20m lead time) plus one failure that
+	// resolves after another success — so MTTR is non-zero.
+	seed := func(id string, offset, leadTime time.Duration, status domain.Status) *domain.DeploymentEvent {
+		start := base.Add(offset)
+		finish := start.Add(2 * time.Minute)
+		commitTS := start.Add(-leadTime)
+		e := &domain.DeploymentEvent{
+			Source:          domain.SourceJenkins,
+			PipelineID:      id,
+			ServiceName:     target.ServiceName,
+			Environment:     target.Environment,
+			Status:          status,
+			StartedAt:       start,
+			FinishedAt:      &finish,
+			CommitSHA:       "sha-" + id,
+			CommitTimestamp: &commitTS,
+		}
+		return e
+	}
+
+	events := []*domain.DeploymentEvent{
+		seed("d1", 0, 10*time.Minute, domain.StatusSuccess),
+		seed("d2", 15*time.Minute, 20*time.Minute, domain.StatusSuccess),
+		seed("f1", 30*time.Minute, 30*time.Minute, domain.StatusFailure),
+		seed("d3", 45*time.Minute, 5*time.Minute, domain.StatusSuccess),
+	}
+	for _, e := range events {
+		if err := s.UpsertEvent(ctx, e); err != nil {
+			t.Fatalf("upsert %s: %v", e.PipelineID, err)
+		}
+	}
+
+	stats, err := s.DORAWindow(ctx, target, base.Add(-time.Minute))
+	if err != nil {
+		t.Fatalf("DORAWindow: %v", err)
+	}
+	if stats.SuccessCount != 3 {
+		t.Errorf("SuccessCount = %d, want 3", stats.SuccessCount)
+	}
+	if stats.FailureCount != 1 {
+		t.Errorf("FailureCount = %d, want 1", stats.FailureCount)
+	}
+	// Lead time = finished_at - commit_timestamp. finish_at = start + 2m, so
+	// actual lead times are 12m (720s), 22m (1320s), 7m (420s). Sorted:
+	// 420, 720, 1320 → p50 (median) = 720s.
+	if stats.LeadTimeP50Sec < 719 || stats.LeadTimeP50Sec > 721 {
+		t.Errorf("LeadTimeP50Sec = %v, want ~720", stats.LeadTimeP50Sec)
+	}
+	// MTTR: failure finished at (base+30m+2m), next success at (base+45m+2m).
+	// Delta = 15 minutes = 900 seconds.
+	if stats.MTTRAverageSec < 899 || stats.MTTRAverageSec > 901 {
+		t.Errorf("MTTRAverageSec = %v, want ~900", stats.MTTRAverageSec)
+	}
+	// CFR = 1 / (3+1) = 0.25.
+	if got := stats.ChangeFailureRate(); got < 0.24 || got > 0.26 {
+		t.Errorf("ChangeFailureRate = %v, want ~0.25", got)
+	}
+}
+
+func TestDORAWindowReturnsZerosWhenEmpty(t *testing.T) {
+	pool := testPool(t)
+	s := postgres.New(pool)
+	ctx := context.Background()
+
+	target := storage.DORATarget{ServiceName: "ghost", Environment: "nowhere"}
+	stats, err := s.DORAWindow(ctx, target, time.Now().Add(-24*time.Hour))
+	if err != nil {
+		t.Fatalf("DORAWindow: %v", err)
+	}
+	if stats.SuccessCount != 0 || stats.FailureCount != 0 {
+		t.Errorf("empty window returned non-zero counts: %+v", stats)
+	}
+	if stats.ChangeFailureRate() != 0 {
+		t.Errorf("empty window CFR = %v, want 0", stats.ChangeFailureRate())
+	}
+}

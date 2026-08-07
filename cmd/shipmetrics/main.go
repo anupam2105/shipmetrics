@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/anupam2105/shipmetrics/internal/config"
+	"github.com/anupam2105/shipmetrics/internal/dora"
 	"github.com/anupam2105/shipmetrics/internal/httpserver"
 	"github.com/anupam2105/shipmetrics/internal/logging"
 	"github.com/anupam2105/shipmetrics/internal/observability"
@@ -54,6 +55,9 @@ func run() error {
 	store := postgres.New(pool)
 	webhookHandler := webhook.NewHandler(store, logger, metrics)
 	srv := httpserver.New(cfg.HTTPAddr, logger, metrics, webhookHandler)
+
+	analyzer := dora.New(store, metrics, logger, dora.DefaultConfig())
+	go analyzer.Run(ctx)
 
 	errCh := make(chan error, 1)
 	go func() {

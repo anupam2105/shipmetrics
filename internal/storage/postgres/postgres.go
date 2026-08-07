@@ -201,3 +201,105 @@ func marshalMetadata(m map[string]string) ([]byte, error) {
 	}
 	return json.Marshal(m)
 }
+
+const listDORATargetsQuery = `
+SELECT service_name, environment
+FROM deployment_events
+WHERE finished_at IS NOT NULL AND finished_at >= $1
+GROUP BY service_name, environment
+ORDER BY service_name, environment
+`
+
+// ListDORATargets returns distinct (service, environment) pairs that had at
+// least one terminal event since the given time. The analyzer uses this to
+// auto-discover which pairs to compute DORA metrics for.
+func (s *Store) ListDORATargets(ctx context.Context, since time.Time) ([]storage.DORATarget, error) {
+	rows, err := s.pool.Query(ctx, listDORATargetsQuery, since)
+	if err != nil {
+		return nil, fmt.Errorf("query dora targets: %w", err)
+	}
+	defer rows.Close()
+
+	var targets []storage.DORATarget
+	for rows.Next() {
+		var t storage.DORATarget
+		if err := rows.Scan(&t.ServiceName, &t.Environment); err != nil {
+			return nil, fmt.Errorf("scan dora target: %w", err)
+		}
+		targets = append(targets, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows: %w", err)
+	}
+	return targets, nil
+}
+
+// doraWindowQuery aggregates four DORA metrics in a single round trip.
+// Lead-time percentiles only consider successful deploys with a known commit
+// timestamp; MTTR pairs each failure with the next chronological success in
+// the same (service, environment) scope.
+const doraWindowQuery = `
+WITH windowed AS (
+    SELECT status, finished_at, commit_timestamp
+    FROM deployment_events
+    WHERE service_name = $1
+      AND environment  = $2
+      AND finished_at IS NOT NULL
+      AND finished_at >= $3
+),
+counts AS (
+    SELECT
+        COALESCE(COUNT(*) FILTER (WHERE status = 'success'), 0) AS success_count,
+        COALESCE(COUNT(*) FILTER (WHERE status = 'failure'), 0) AS failure_count
+    FROM windowed
+),
+lead_time AS (
+    SELECT
+        COALESCE(PERCENTILE_CONT(0.5)  WITHIN GROUP (
+            ORDER BY EXTRACT(EPOCH FROM (finished_at - commit_timestamp))
+        ), 0) AS p50,
+        COALESCE(PERCENTILE_CONT(0.95) WITHIN GROUP (
+            ORDER BY EXTRACT(EPOCH FROM (finished_at - commit_timestamp))
+        ), 0) AS p95
+    FROM windowed
+    WHERE status = 'success' AND commit_timestamp IS NOT NULL
+),
+mttr AS (
+    SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (next_success - failure_time))), 0) AS avg_seconds
+    FROM (
+        SELECT
+            e.finished_at AS failure_time,
+            (
+                SELECT MIN(e2.finished_at)
+                FROM windowed e2
+                WHERE e2.status = 'success' AND e2.finished_at > e.finished_at
+            ) AS next_success
+        FROM windowed e
+        WHERE e.status = 'failure'
+    ) t
+    WHERE t.next_success IS NOT NULL
+)
+SELECT counts.success_count, counts.failure_count,
+       lead_time.p50, lead_time.p95,
+       mttr.avg_seconds
+FROM counts, lead_time, mttr
+`
+
+// DORAWindow computes the four DORA metrics for one target over the window
+// starting at since. All fields default to zero when the underlying data is
+// insufficient, so gauges remain stable during cold-start.
+func (s *Store) DORAWindow(ctx context.Context, t storage.DORATarget, since time.Time) (storage.DORAWindowStats, error) {
+	row := s.pool.QueryRow(ctx, doraWindowQuery, t.ServiceName, t.Environment, since)
+
+	stats := storage.DORAWindowStats{Target: t}
+	if err := row.Scan(
+		&stats.SuccessCount,
+		&stats.FailureCount,
+		&stats.LeadTimeP50Sec,
+		&stats.LeadTimeP95Sec,
+		&stats.MTTRAverageSec,
+	); err != nil {
+		return storage.DORAWindowStats{}, fmt.Errorf("scan dora window: %w", err)
+	}
+	return stats, nil
+}
