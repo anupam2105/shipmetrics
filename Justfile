@@ -50,3 +50,20 @@ db-logs:
 
 db-psql:
     docker compose exec postgres psql -U shipmetrics -d shipmetrics
+
+# --- One-command demo (full stack) ---
+# Builds shipmetrics, starts Postgres + Prometheus + Grafana, and prints URLs.
+demo:
+    docker compose --profile demo up -d --build
+    @echo ""
+    @echo "shipmetrics:  http://localhost:8080"
+    @echo "Grafana:      http://localhost:3000 (anonymous viewer, admin/admin for edits)"
+    @echo "Prometheus:   http://localhost:9090"
+    @echo ""
+    @echo "Seed a deployment event:"
+    @echo "  curl -X POST http://localhost:8080/webhooks/jenkins \\"
+    @echo "    -H 'Content-Type: application/json' \\"
+    @echo "    -d '{\"pipeline_id\":\"demo-1\",\"service_name\":\"checkout-api\",\"environment\":\"prod\",\"status\":\"success\",\"started_at\":\"2026-08-05T10:00:00Z\",\"finished_at\":\"2026-08-05T10:01:00Z\"}'"
+
+demo-down:
+    docker compose --profile demo down

@@ -25,9 +25,27 @@ Every dev team has a CI/CD pipeline. Almost nobody has good visibility into pipe
 
 `shipmetrics` fills that gap.
 
-## Quick start (local)
+## One-command demo (full stack)
 
-Prerequisites: Docker (or OrbStack), Go 1.22+, `just`, `golangci-lint`.
+Prerequisites: Docker (or OrbStack) and `just`.
+
+```bash
+just demo
+```
+
+Brings up shipmetrics, Postgres, Prometheus, and Grafana with a pre-provisioned DORA dashboard.
+
+- **shipmetrics API:** <http://localhost:8080>
+- **Grafana:** <http://localhost:3000> → *shipmetrics* folder → *DORA metrics*
+- **Prometheus:** <http://localhost:9090>
+
+Seed some deployment events (a few `curl` calls) and the dashboard populates within one scrape interval.
+
+Tear down with `just demo-down`.
+
+## Local development (without demo containers)
+
+Prerequisites: Go 1.22+, `just`, `golangci-lint`, Docker (for the Postgres dependency).
 
 ```bash
 just dev          # boots Postgres via docker-compose, then runs the app
