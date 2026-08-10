@@ -1,0 +1,55 @@
+groups:
+  - name: shipmetrics.deploy-slo
+    interval: 30s
+    rules:
+      # Fast burn — high consumption rate over a short window. Page immediately.
+      # 14.4x burn rate for 1h uses ~48h of a 30-day budget. Multi-window
+      # confirms it's a genuine burn (not a single-request flake).
+      - alert: DeploySLOFastBurn
+        expr: |
+          shipmetrics_slo_burn_rate{window="1h0m0s"} > 14.4
+          and shipmetrics_slo_burn_rate{window="6h0m0s"} > 6
+        for: 2m
+        labels:
+          severity: page
+          slo: deploy-success
+        annotations:
+          summary: >-
+            Fast SLO burn on {{ $labels.service }}/{{ $labels.environment }}
+          description: >-
+            Burn rate is {{ $value | humanize }}x on the 1h window and
+            confirmed on the 6h window. At this rate the monthly error
+            budget is exhausted in under 48 hours.
+          runbook: docs/runbooks/deploy-slo-burn.md
+
+      # Slow burn — sustained modest overspend. Ticket, don't page.
+      - alert: DeploySLOSlowBurn
+        expr: |
+          shipmetrics_slo_burn_rate{window="6h0m0s"} > 3
+          and shipmetrics_slo_burn_rate{window="1h0m0s"} > 1
+        for: 15m
+        labels:
+          severity: ticket
+          slo: deploy-success
+        annotations:
+          summary: >-
+            Slow SLO burn on {{ $labels.service }}/{{ $labels.environment }}
+          description: >-
+            Sustained burn of {{ $value | humanize }}x over 6h. Budget will
+            exhaust in ~10 days at this rate. Investigate flaky pipelines.
+          runbook: docs/runbooks/deploy-slo-burn.md
+
+      # Non-compliant status flag — visible in Grafana and dashboards without
+      # firing an alert. Useful for status pages.
+      - alert: DeploySLOViolating
+        expr: shipmetrics_slo_compliant{window="1h0m0s"} == 0
+        for: 30m
+        labels:
+          severity: info
+          slo: deploy-success
+        annotations:
+          summary: >-
+            {{ $labels.service }}/{{ $labels.environment }} is violating deploy SLO
+          description: >-
+            Failure rate on the 1h window has exceeded the error budget
+            for at least 30 minutes.

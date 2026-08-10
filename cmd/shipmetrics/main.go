@@ -15,6 +15,7 @@ import (
 	"github.com/anupam2105/shipmetrics/internal/httpserver"
 	"github.com/anupam2105/shipmetrics/internal/logging"
 	"github.com/anupam2105/shipmetrics/internal/observability"
+	"github.com/anupam2105/shipmetrics/internal/slo"
 	"github.com/anupam2105/shipmetrics/internal/storage/postgres"
 	"github.com/anupam2105/shipmetrics/internal/webhook"
 )
@@ -58,6 +59,9 @@ func run() error {
 
 	analyzer := dora.New(store, metrics, logger, dora.DefaultConfig())
 	go analyzer.Run(ctx)
+
+	sloEvaluator := slo.New(store, metrics, logger, slo.DefaultConfig())
+	go sloEvaluator.Run(ctx)
 
 	errCh := make(chan error, 1)
 	go func() {

@@ -51,6 +51,27 @@ func (s DORAWindowStats) ChangeFailureRate() float64 {
 	return float64(s.FailureCount) / float64(total)
 }
 
+// ObservationWindow captures aggregate success/failure counts for a
+// (service, environment) pair over a time window. It is the minimal input
+// the SLO evaluator needs to compute burn rate and compliance.
+type ObservationWindow struct {
+	SuccessCount int
+	FailureCount int
+}
+
+// Total returns success + failure. Zero when no data landed in the window.
+func (o ObservationWindow) Total() int { return o.SuccessCount + o.FailureCount }
+
+// FailureRate returns failures / total. Zero when total is zero to keep
+// gauges stable during warm-up rather than emitting NaN.
+func (o ObservationWindow) FailureRate() float64 {
+	total := o.Total()
+	if total == 0 {
+		return 0
+	}
+	return float64(o.FailureCount) / float64(total)
+}
+
 // Store persists DeploymentEvents and answers read queries used by the
 // DORA metric evaluators and API surface.
 type Store interface {
@@ -72,6 +93,12 @@ type Store interface {
 	// DORAWindow computes the four DORA metrics for one target over events
 	// finished at or after since.
 	DORAWindow(ctx context.Context, t DORATarget, since time.Time) (DORAWindowStats, error)
+
+	// ObservationWindow returns success/failure counts for one
+	// (service, environment) pair between since and until. Used by the SLO
+	// evaluator to compute burn rate over multiple windows without pulling
+	// full event rows.
+	ObservationWindow(ctx context.Context, service, environment string, since, until time.Time) (ObservationWindow, error)
 
 	// Ping verifies the store is reachable.
 	Ping(ctx context.Context) error

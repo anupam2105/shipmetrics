@@ -28,6 +28,13 @@ type Metrics struct {
 	DORAChangeFailureRate *prometheus.GaugeVec // 0..1 ratio
 	DORALeadTimeSeconds   *prometheus.GaugeVec // labelled by quantile (0.5, 0.95)
 	DORAMTTRSeconds       *prometheus.GaugeVec // average MTTR
+
+	// SLO gauges refreshed by internal/slo.Evaluator, labelled by
+	// (service, environment, window).
+	SLOBurnRate    *prometheus.GaugeVec // failure_rate / error_budget
+	SLOFailureRate *prometheus.GaugeVec // observed failure ratio in window
+	SLOTarget      *prometheus.GaugeVec // configured target success rate
+	SLOCompliant   *prometheus.GaugeVec // 1.0 if compliant else 0.0
 }
 
 // NewMetrics constructs the registry with Go runtime + process collectors and
@@ -123,6 +130,42 @@ func NewMetrics() *Metrics {
 			},
 			[]string{"service", "environment"},
 		),
+		SLOBurnRate: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: "shipmetrics",
+				Subsystem: "slo",
+				Name:      "burn_rate",
+				Help:      "Observed failure rate divided by the SLO error budget over the window.",
+			},
+			[]string{"service", "environment", "window"},
+		),
+		SLOFailureRate: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: "shipmetrics",
+				Subsystem: "slo",
+				Name:      "failure_rate",
+				Help:      "Observed deploy failure rate over the window (0..1).",
+			},
+			[]string{"service", "environment", "window"},
+		),
+		SLOTarget: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: "shipmetrics",
+				Subsystem: "slo",
+				Name:      "target",
+				Help:      "Configured deploy-success target for the (service, environment, window).",
+			},
+			[]string{"service", "environment", "window"},
+		),
+		SLOCompliant: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: "shipmetrics",
+				Subsystem: "slo",
+				Name:      "compliant",
+				Help:      "1 if the window is meeting its SLO, 0 otherwise.",
+			},
+			[]string{"service", "environment", "window"},
+		),
 	}
 	reg.MustRegister(
 		m.HTTPRequestsTotal,
@@ -134,6 +177,10 @@ func NewMetrics() *Metrics {
 		m.DORAChangeFailureRate,
 		m.DORALeadTimeSeconds,
 		m.DORAMTTRSeconds,
+		m.SLOBurnRate,
+		m.SLOFailureRate,
+		m.SLOTarget,
+		m.SLOCompliant,
 	)
 	return m
 }

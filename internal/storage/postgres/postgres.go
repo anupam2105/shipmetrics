@@ -285,6 +285,31 @@ SELECT counts.success_count, counts.failure_count,
 FROM counts, lead_time, mttr
 `
 
+const observationWindowQuery = `
+SELECT
+    COALESCE(COUNT(*) FILTER (WHERE status = 'success'), 0) AS success_count,
+    COALESCE(COUNT(*) FILTER (WHERE status = 'failure'), 0) AS failure_count
+FROM deployment_events
+WHERE service_name = $1
+  AND environment  = $2
+  AND finished_at IS NOT NULL
+  AND finished_at >= $3
+  AND finished_at <  $4
+`
+
+// ObservationWindow returns success/failure counts for a (service, environment)
+// between since (inclusive) and until (exclusive). Half-open bound so adjacent
+// windows can be composed without double-counting.
+func (s *Store) ObservationWindow(ctx context.Context, service, environment string, since, until time.Time) (storage.ObservationWindow, error) {
+	row := s.pool.QueryRow(ctx, observationWindowQuery, service, environment, since, until)
+
+	var w storage.ObservationWindow
+	if err := row.Scan(&w.SuccessCount, &w.FailureCount); err != nil {
+		return storage.ObservationWindow{}, fmt.Errorf("scan observation window: %w", err)
+	}
+	return w, nil
+}
+
 // DORAWindow computes the four DORA metrics for one target over the window
 // starting at since. All fields default to zero when the underlying data is
 // insufficient, so gauges remain stable during cold-start.

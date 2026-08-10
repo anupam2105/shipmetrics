@@ -39,6 +39,9 @@ func (f *fakeStore) GetEvent(_ context.Context, _ domain.Source, _ string) (*dom
 func (f *fakeStore) ListRecentEvents(_ context.Context, _ storage.EventFilter, _ int) ([]*domain.DeploymentEvent, error) {
 	return nil, nil
 }
+func (f *fakeStore) ObservationWindow(_ context.Context, _, _ string, _, _ time.Time) (storage.ObservationWindow, error) {
+	return storage.ObservationWindow{}, nil
+}
 func (f *fakeStore) Ping(_ context.Context) error { return nil }
 
 func (f *fakeStore) ListDORATargets(_ context.Context, _ time.Time) ([]storage.DORATarget, error) {

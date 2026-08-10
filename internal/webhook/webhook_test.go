@@ -69,6 +69,10 @@ func (f *fakeStore) DORAWindow(_ context.Context, t storage.DORATarget, _ time.T
 	return storage.DORAWindowStats{Target: t}, nil
 }
 
+func (f *fakeStore) ObservationWindow(_ context.Context, _, _ string, _, _ time.Time) (storage.ObservationWindow, error) {
+	return storage.ObservationWindow{}, nil
+}
+
 func (f *fakeStore) Ping(_ context.Context) error { return nil }
 
 func newTestHandler(t *testing.T) (*webhook.Handler, *fakeStore) {
