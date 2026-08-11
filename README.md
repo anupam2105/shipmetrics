@@ -39,6 +39,8 @@ Brings up shipmetrics, Postgres, Prometheus, and Grafana with a pre-provisioned 
 - **Grafana:** <http://localhost:3000> → *shipmetrics* folder → *DORA metrics*
 - **Prometheus:** <http://localhost:9090>
 
+> ⚠️ **Demo credentials.** The demo stack uses well-known local defaults (Postgres `shipmetrics/shipmetrics`, Grafana `admin/admin`) bound only to `localhost`. **Do not use these in any deployment reachable from a network.** See [SECURITY.md](SECURITY.md) for production configuration.
+
 Seed some deployment events (a few `curl` calls) and the dashboard populates within one scrape interval.
 
 Tear down with `just demo-down`.
