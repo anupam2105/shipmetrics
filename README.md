@@ -1,6 +1,8 @@
 # shipmetrics
 
 [![CI](https://github.com/anupam2105/shipmetrics/actions/workflows/ci.yml/badge.svg)](https://github.com/anupam2105/shipmetrics/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/anupam2105/shipmetrics?include_prereleases&sort=semver)](https://github.com/anupam2105/shipmetrics/releases)
+[![Container](https://img.shields.io/badge/ghcr.io-anupam2105%2Fshipmetrics-blue?logo=docker)](https://github.com/anupam2105/shipmetrics/pkgs/container/shipmetrics)
 [![Go Report Card](https://goreportcard.com/badge/github.com/anupam2105/shipmetrics)](https://goreportcard.com/report/github.com/anupam2105/shipmetrics)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
@@ -24,6 +26,16 @@ Think of it as an open-source alternative to Datadog CI Visibility / LinearB, fo
 Every dev team has a CI/CD pipeline. Almost nobody has good visibility into pipeline reliability — deployment success rate as an SLO, change failure rate, MTTR. The DORA report has been the industry standard since 2018; open-source tooling to actually measure it is thin.
 
 `shipmetrics` fills that gap.
+
+## Install
+
+Container images are published to [GitHub Container Registry](https://github.com/anupam2105/shipmetrics/pkgs/container/shipmetrics) for `linux/amd64` and `linux/arm64`:
+
+```bash
+docker pull ghcr.io/anupam2105/shipmetrics:v0.1.0-alpha
+```
+
+Or build from source: `just build` produces `bin/shipmetrics`.
 
 ## One-command demo (full stack)
 
