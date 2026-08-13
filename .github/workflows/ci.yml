@@ -145,3 +145,31 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  helm:
+    name: Helm lint + template
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+      - name: Helm lint
+        run: helm lint deploy/helm/shipmetrics --set database.url=postgres://u:p@h:5432/db
+      - name: Helm template renders
+        run: helm template shipmetrics deploy/helm/shipmetrics --set database.url=postgres://u:p@h:5432/db > /tmp/rendered.yaml
+      - name: Assert rendered manifests parse
+        run: |
+          # A crude but effective smoke test — every YAML doc must be parseable.
+          python3 -c "
+          import sys, yaml
+          docs = list(yaml.safe_load_all(open('/tmp/rendered.yaml')))
+          docs = [d for d in docs if d]
+          assert len(docs) >= 3, f'expected >=3 rendered manifests, got {len(docs)}'
+          kinds = sorted({d['kind'] for d in docs})
+          print('rendered kinds:', kinds)
+          assert 'Deployment' in kinds
+          assert 'Service' in kinds
+          assert 'ServiceAccount' in kinds
+          "

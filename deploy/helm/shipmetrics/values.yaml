@@ -1,0 +1,127 @@
+# Default values for shipmetrics. Override with `--values` or `--set`.
+
+image:
+  repository: ghcr.io/anupam2105/shipmetrics
+  tag: ""                # Defaults to Chart.appVersion when empty
+  pullPolicy: IfNotPresent
+
+# Image pull secrets for private registries. GHCR public images need none.
+imagePullSecrets: []
+
+# Override the fully-qualified resource name.
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+# --- Application config ---
+config:
+  # Log level: debug | info | warn | error
+  logLevel: info
+  # Log format: json | text
+  logFormat: json
+
+# --- Database (required) ---
+# Provide EITHER `url` (plain-text — dev only) OR `existingSecret` (recommended
+# for production; the secret must expose a key holding the full DSN).
+database:
+  url: ""
+  existingSecret: ""
+  existingSecretKey: "database-url"
+
+# --- Kubernetes resource shape ---
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# --- Service ---
+service:
+  type: ClusterIP
+  port: 8080
+  # Name of the port exposed on the service — referenced by ServiceMonitor.
+  portName: http
+
+# --- Health probes ---
+probes:
+  liveness:
+    path: /healthz
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  readiness:
+    path: /readyz
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 3
+
+# --- Pod security context (matches Dockerfile: nonroot uid 65532) ---
+podSecurityContext:
+  fsGroup: 65532
+  runAsNonRoot: true
+
+# --- Container security context (defence in depth) ---
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+
+# --- Service account ---
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# --- Ingress (disabled by default; users bring their own) ---
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: shipmetrics.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# --- Prometheus Operator ServiceMonitor ---
+# Only usable when the target cluster has the Prometheus Operator CRDs
+# (Prometheus stack, kube-prometheus, etc.) installed.
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  interval: 15s
+  scrapeTimeout: 10s
+  # honor_labels=true so app-emitted service/environment labels survive.
+  honorLabels: true
+  labels: {}
+
+# --- Scheduling ---
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+# --- PodDisruptionBudget (opt-in) ---
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# --- Extra labels/annotations for all resources ---
+commonLabels: {}
+commonAnnotations: {}
+
+# --- Extra environment variables (raw list, appended after config-derived ones) ---
+extraEnv: []

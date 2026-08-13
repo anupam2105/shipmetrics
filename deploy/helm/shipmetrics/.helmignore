@@ -1,0 +1,10 @@
+# Patterns to ignore when building helm packages.
+.DS_Store
+.git/
+.gitignore
+.editorconfig
+.project
+.idea/
+*.tmproj
+.vscode/
+README.md.gotmpl

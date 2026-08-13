@@ -67,3 +67,11 @@ demo:
 
 demo-down:
     docker compose --profile demo down
+
+# --- Helm chart ---
+helm-lint:
+    helm lint deploy/helm/shipmetrics --set database.url=postgres://u:p@h:5432/db
+
+helm-template:
+    helm template shipmetrics deploy/helm/shipmetrics \
+      --set database.url=postgres://u:p@h:5432/db

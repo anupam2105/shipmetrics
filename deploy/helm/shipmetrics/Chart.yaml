@@ -1,0 +1,31 @@
+apiVersion: v2
+name: shipmetrics
+description: DORA metrics and SLO platform for CI/CD pipelines
+type: application
+
+# Chart version — bumped independently from the application version.
+version: 0.1.0
+
+# App version — the container image tag this chart is calibrated against.
+appVersion: "v0.1.0-alpha"
+
+kubeVersion: ">=1.26.0-0"
+
+home: https://github.com/anupam2105/shipmetrics
+sources:
+  - https://github.com/anupam2105/shipmetrics
+
+maintainers:
+  - name: anupam2105
+    url: https://github.com/anupam2105
+
+keywords:
+  - sre
+  - dora
+  - slo
+  - cicd
+  - observability
+  - platform-engineering
+
+annotations:
+  category: DevOps
