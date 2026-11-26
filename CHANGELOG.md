@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0-alpha] — 2026-11-26
+
 ### Added
 - Read API: `GET /api/v1/deployments` lists recent terminal deployments with optional `service`, `environment`, `since` and `limit` filters. Consumed by pageguard's `get_recent_deploys` tool.
 - Optional bearer-token auth for the read API via `SHIPMETRICS_API_TOKEN` (Helm: `api.existingSecret`).
@@ -41,5 +43,6 @@ Initial public alpha. Feature-complete for the "deploy webhook → DORA dashboar
 - Single-tenant only.
 - No published Docker image or Helm chart — planned for v0.1.0 (non-alpha).
 
-[Unreleased]: https://github.com/anupam2105/shipmetrics/compare/v0.1.0-alpha...HEAD
+[Unreleased]: https://github.com/anupam2105/shipmetrics/compare/v0.2.0-alpha...HEAD
+[0.2.0-alpha]: https://github.com/anupam2105/shipmetrics/compare/v0.1.0-alpha...v0.2.0-alpha
 [0.1.0-alpha]: https://github.com/anupam2105/shipmetrics/releases/tag/v0.1.0-alpha
