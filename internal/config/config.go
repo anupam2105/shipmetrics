@@ -16,6 +16,8 @@ type Config struct {
 	LogFormat       string
 	DatabaseURL     string // empty until storage layer is wired in
 	ShutdownTimeout time.Duration
+	// APIToken, when set, is required as a bearer token on /api/v1/* reads.
+	APIToken string
 }
 
 // Load reads configuration from environment variables and validates it.
@@ -26,6 +28,7 @@ func Load() (Config, error) {
 		LogFormat:       strings.ToLower(getEnv("SHIPMETRICS_LOG_FORMAT", "json")),
 		DatabaseURL:     getEnv("SHIPMETRICS_DATABASE_URL", ""),
 		ShutdownTimeout: 15 * time.Second,
+		APIToken:        getEnv("SHIPMETRICS_API_TOKEN", ""),
 	}
 
 	switch cfg.LogLevel {

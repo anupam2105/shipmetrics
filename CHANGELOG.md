@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Read API: `GET /api/v1/deployments` lists recent terminal deployments with optional `service`, `environment`, `since` and `limit` filters. Consumed by pageguard's `get_recent_deploys` tool.
+- Optional bearer-token auth for the read API via `SHIPMETRICS_API_TOKEN` (Helm: `api.existingSecret`).
+
 ## [0.1.0-alpha] — 2026-08-11
 
 Initial public alpha. Feature-complete for the "deploy webhook → DORA dashboard → SLO burn-rate alert" path. API surface is expected to change before 1.0.

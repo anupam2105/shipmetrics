@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/anupam2105/shipmetrics/internal/api"
 	"github.com/anupam2105/shipmetrics/internal/observability"
 	"github.com/anupam2105/shipmetrics/internal/webhook"
 )
@@ -21,9 +22,10 @@ type Server struct {
 }
 
 // New constructs a Server bound to addr. If webhooks is non-nil the
-// /webhooks/* routes are registered; passing nil is legal for tests that only
-// care about health/metrics.
-func New(addr string, logger *slog.Logger, metrics *observability.Metrics, webhooks *webhook.Handler) *Server {
+// /webhooks/* routes are registered, and if readAPI is non-nil the /api/v1/*
+// routes are; passing nil is legal for tests that only care about
+// health/metrics.
+func New(addr string, logger *slog.Logger, metrics *observability.Metrics, webhooks *webhook.Handler, readAPI *api.Handler) *Server {
 	s := &Server{
 		logger:  logger,
 		metrics: metrics,
@@ -36,6 +38,9 @@ func New(addr string, logger *slog.Logger, metrics *observability.Metrics, webho
 	if webhooks != nil {
 		mux.HandleFunc("POST /webhooks/jenkins", webhooks.Jenkins)
 		mux.HandleFunc("POST /webhooks/github", webhooks.GitHub)
+	}
+	if readAPI != nil {
+		mux.HandleFunc("GET /api/v1/deployments", readAPI.ListDeployments)
 	}
 
 	s.srv = &http.Server{
@@ -104,7 +109,8 @@ func (s *Server) instrument(next http.Handler) http.Handler {
 func routeLabel(path string) string {
 	switch path {
 	case "/healthz", "/readyz", "/metrics",
-		"/webhooks/jenkins", "/webhooks/github":
+		"/webhooks/jenkins", "/webhooks/github",
+		"/api/v1/deployments":
 		return path
 	default:
 		return "unknown"

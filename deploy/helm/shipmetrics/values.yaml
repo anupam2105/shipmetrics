@@ -29,6 +29,13 @@ database:
   existingSecret: ""
   existingSecretKey: "database-url"
 
+# --- Read API auth (optional) ---
+# When set, GET /api/v1/* requires "Authorization: Bearer <token>". The secret
+# must already exist and expose the token under existingSecretKey.
+api:
+  existingSecret: ""
+  existingSecretKey: "api-token"
+
 # --- Kubernetes resource shape ---
 resources:
   requests:

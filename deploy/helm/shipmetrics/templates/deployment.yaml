@@ -58,6 +58,13 @@ spec:
                   name: {{ include "shipmetrics.fullname" . }}-db
                   key: database-url
                   {{- end }}
+            {{- if .Values.api.existingSecret }}
+            - name: SHIPMETRICS_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.api.existingSecret }}
+                  key: {{ .Values.api.existingSecretKey }}
+            {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

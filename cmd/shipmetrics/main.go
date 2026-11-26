@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/anupam2105/shipmetrics/internal/api"
 	"github.com/anupam2105/shipmetrics/internal/config"
 	"github.com/anupam2105/shipmetrics/internal/dora"
 	"github.com/anupam2105/shipmetrics/internal/httpserver"
@@ -55,7 +56,11 @@ func run() error {
 
 	store := postgres.New(pool)
 	webhookHandler := webhook.NewHandler(store, logger, metrics)
-	srv := httpserver.New(cfg.HTTPAddr, logger, metrics, webhookHandler)
+	readAPI := api.NewHandler(store, logger, cfg.APIToken)
+	if cfg.APIToken == "" {
+		logger.Warn("SHIPMETRICS_API_TOKEN not set — /api/v1 read endpoints are unauthenticated")
+	}
+	srv := httpserver.New(cfg.HTTPAddr, logger, metrics, webhookHandler, readAPI)
 
 	analyzer := dora.New(store, metrics, logger, dora.DefaultConfig())
 	go analyzer.Run(ctx)

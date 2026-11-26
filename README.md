@@ -110,6 +110,22 @@ FROM deployment_events ORDER BY finished_at DESC LIMIT 5;
 | GET | `/metrics` | Prometheus scrape target |
 | POST | `/webhooks/jenkins` | Canonical shipmetrics JSON payload |
 | POST | `/webhooks/github` | GitHub Actions `workflow_run` payload (add `?service=X&environment=Y`) |
+| GET | `/api/v1/deployments` | Recent terminal deployments, newest first (see below) |
+
+### Read API
+
+`GET /api/v1/deployments?service=checkout-api&environment=prod&since=2026-08-05T09:00:00Z&limit=20`
+
+All query parameters are optional. `since` is RFC 3339; `limit` is 1–200 (default 20).
+If `SHIPMETRICS_API_TOKEN` is set, send `Authorization: Bearer <token>`.
+
+```json
+{"deployments": [{"source": "jenkins", "pipeline_id": "42", "service": "checkout-api",
+  "environment": "prod", "status": "success", "started_at": "2026-08-05T10:00:00Z",
+  "finished_at": "2026-08-05T10:03:00Z", "commit_sha": "abc123"}]}
+```
+
+This is the endpoint [pageguard](https://github.com/anupam2105/pageguard) uses for its `get_recent_deploys` tool.
 
 ### Jenkins payload contract
 
@@ -156,6 +172,7 @@ Environment variables:
 | `SHIPMETRICS_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 | `SHIPMETRICS_LOG_FORMAT` | `json` | `json` or `text` |
 | `SHIPMETRICS_DATABASE_URL` | *required* | Postgres DSN (e.g. `postgres://user:pass@host:5432/db?sslmode=disable`) |
+| `SHIPMETRICS_API_TOKEN` | *(empty)* | Bearer token required on `/api/v1/*`; empty leaves the read API open |
 
 ## Architecture
 
