@@ -4,10 +4,10 @@ description: DORA metrics and SLO platform for CI/CD pipelines
 type: application
 
 # Chart version — bumped independently from the application version.
-version: 0.2.0
+version: 0.2.1
 
 # App version — the container image tag this chart is calibrated against.
-appVersion: "v0.2.0-alpha"
+appVersion: "v0.2.1-alpha"
 
 kubeVersion: ">=1.26.0-0"
 

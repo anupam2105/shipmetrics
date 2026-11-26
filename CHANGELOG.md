@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1-alpha] — 2026-11-26
+
+### Security
+- Build with Go 1.26.11, fixing standard-library CVEs reported by govulncheck (net/http, crypto/tls, crypto/x509, net/textproto; incl. GO-2026-6859).
+- Bump `golang.org/x/text` to v0.41.0.
+
 ## [0.2.0-alpha] — 2026-11-26
 
 ### Added
@@ -43,6 +49,7 @@ Initial public alpha. Feature-complete for the "deploy webhook → DORA dashboar
 - Single-tenant only.
 - No published Docker image or Helm chart — planned for v0.1.0 (non-alpha).
 
-[Unreleased]: https://github.com/anupam2105/shipmetrics/compare/v0.2.0-alpha...HEAD
+[Unreleased]: https://github.com/anupam2105/shipmetrics/compare/v0.2.1-alpha...HEAD
+[0.2.1-alpha]: https://github.com/anupam2105/shipmetrics/compare/v0.2.0-alpha...v0.2.1-alpha
 [0.2.0-alpha]: https://github.com/anupam2105/shipmetrics/compare/v0.1.0-alpha...v0.2.0-alpha
 [0.1.0-alpha]: https://github.com/anupam2105/shipmetrics/releases/tag/v0.1.0-alpha

@@ -32,7 +32,7 @@ Every dev team has a CI/CD pipeline. Almost nobody has good visibility into pipe
 **Docker** — multi-arch images on [GitHub Container Registry](https://github.com/anupam2105/shipmetrics/pkgs/container/shipmetrics):
 
 ```bash
-docker pull ghcr.io/anupam2105/shipmetrics:v0.1.0-alpha
+docker pull ghcr.io/anupam2105/shipmetrics:v0.2.1-alpha
 ```
 
 **Kubernetes** — with the Helm chart in [`deploy/helm/shipmetrics`](deploy/helm/shipmetrics):
